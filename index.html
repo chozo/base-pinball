@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>野球ピンボール</title>
+<meta name="description" content="ピンボールで打って、走って、点を取る！ターゲットに当てるとヒット・二塁打・三塁打・ホームラン。3アウトまでに何点取れるか。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="野球ピンボール">
+<meta property="og:title" content="野球ピンボール">
+<meta property="og:description" content="ピンボールで打って、走って、点を取る！3アウトまでに何点取れるか。">
+<meta property="og:url" content="https://game.chozo.net/base-pinball/">
+<meta property="og:image" content="https://game.chozo.net/base-pinball/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="野球ピンボールのゲーム画面と、タイトル「野球ピンボール」・遊び方・公開URL">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0b1f14">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --bg:#0b1f14; --panel:#12331f; --line:#2c5a3c; --text:#f4f7f2; --dim:#9fb8a6;
+    --single:#3b82f6; --double:#16a34a; --triple:#f59e0b; --hr:#ef4444; --gold:#facc15;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+    overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:560px;margin:0 auto;
+    padding:calc(env(safe-area-inset-top) + 4px) 8px calc(env(safe-area-inset-bottom) + 4px);touch-action:none}
+  #hud{display:grid;grid-template-columns:1fr 1.25fr 58px 1.3fr;gap:5px;flex:none}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px 4px;text-align:center;min-width:0;
+    display:flex;flex-direction:column;justify-content:center;height:58px}
+  .lbl{font-size:11px;color:var(--dim);line-height:1.2;white-space:nowrap}
+  .val{font-size:26px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+  .val.small{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #score.bump{animation:bump .6s ease-out}
+  @keyframes bump{0%{transform:scale(1.7);color:var(--gold)}100%{transform:scale(1);color:var(--text)}}
+  #outDots{display:flex;gap:5px;justify-content:center;margin:2px 0}
+  #outDots span{width:14px;height:14px;border-radius:50%;border:2px solid #5b7a66;background:transparent}
+  #outDots span.on{border-color:#fca5a5}
+  #outDots span.on{background:#ef4444;box-shadow:0 0 6px #ef4444}
+  .sub{font-size:11px;color:var(--text);white-space:nowrap;font-weight:700}
+  .box.diamond{padding:2px}
+  #diamondSvg{width:52px;height:52px;margin:auto}
+  .base{fill:#294a35;stroke:#8fb59b;stroke-width:1.5}
+  .base.on{fill:var(--gold);stroke:#fff;filter:drop-shadow(0 0 3px #facc15)}
+  #home.flash{fill:#fff}
+  #last.single{color:#93c5fd}#last.double{color:#86efac}#last.triple{color:#fcd34d}#last.hr{color:#fca5a5}#last.out{color:#f87171}
+  #status{flex:none;height:22px;line-height:22px;font-size:12.5px;text-align:center;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #status b{color:var(--gold)}
+  #stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+  #cv{display:block;border-radius:12px;box-shadow:0 0 0 2px #3c6b4c,0 6px 24px rgba(0,0,0,.5);touch-action:none}
+  #mute{position:absolute;top:4px;right:4px;z-index:3;background:rgba(0,0,0,.35);color:#fff;border:1px solid #ffffff44;border-radius:8px;
+    font-size:14px;padding:3px 7px;cursor:pointer}
+  #overlay{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:10px}
+  #overlay.hide{display:none}
+  .card{background:rgba(9,26,16,.94);border:2px solid #3c6b4c;border-radius:16px;padding:16px 16px 14px;max-width:340px;width:100%;
+    text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.6);max-height:100%;overflow:auto}
+  .card h1{margin:0 0 6px;font-size:26px;letter-spacing:.05em}
+  .card h2{margin:0 0 4px;font-size:22px}
+  .card p{margin:6px 0;font-size:13.5px;line-height:1.55}
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin:8px 0;font-size:13px;text-align:left}
+  .chip{display:inline-block;min-width:38px;text-align:center;border-radius:999px;padding:1px 6px;color:#fff;font-weight:800;font-size:12px;margin-right:4px}
+  .keys{font-size:12px;color:var(--dim);line-height:1.5}
+  .bigbtn{margin-top:10px;font-size:19px;font-weight:800;padding:11px 28px;border-radius:999px;border:none;cursor:pointer;
+    background:linear-gradient(#fde047,#f59e0b);color:#3a2300;box-shadow:0 4px 0 #a16207}
+  .bigbtn:active{transform:translateY(2px);box-shadow:0 2px 0 #a16207}
+  .final{font-size:46px;font-weight:900;color:var(--gold);line-height:1.1;margin:4px 0}
+  .tbl{width:100%;border-collapse:collapse;margin:6px 0;font-size:14px}
+  .tbl td{padding:3px 6px;border-bottom:1px solid #2c5a3c}
+  .tbl td:last-child{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+  #controls{flex:none;display:grid;grid-template-columns:1fr .8fr 1fr;gap:8px;height:74px;padding-top:6px}
+  .ctl{border:none;border-radius:14px;font-weight:800;font-size:17px;color:#fff;cursor:pointer;touch-action:none;
+    background:linear-gradient(#2f6b45,#1d4a2e);box-shadow:0 4px 0 #0f2c1a, inset 0 0 0 2px #4f8f64;line-height:1.15;
+    -webkit-tap-highlight-color:transparent;padding:0}
+  .ctl small{font-size:10.5px;font-weight:600;color:#cfe3d5}
+  .ctl.on{transform:translateY(3px);box-shadow:0 1px 0 #0f2c1a, inset 0 0 0 2px #fde047;background:linear-gradient(#3d8a5a,#28603c)}
+  .ctl.launch{background:linear-gradient(0deg,#ef4444 calc(var(--p,0)*100%),#7c2d12 calc(var(--p,0)*100%));box-shadow:0 4px 0 #450a0a, inset 0 0 0 2px #fca5a5}
+  .ctl.launch.ready{animation:pulse 1.1s infinite}
+  @keyframes pulse{50%{box-shadow:0 4px 0 #450a0a, inset 0 0 0 3px #fde047, 0 0 14px #fde047}}
+  @media (max-width:360px){ .val{font-size:22px} .val.small{font-size:15px} .lbl,.sub{font-size:10px} #hud{grid-template-columns:.9fr 1.2fr 54px 1.2fr} #diamondSvg{width:48px;height:48px} }
+  @media (max-height:600px){ .box{height:50px} .val{font-size:21px} #controls{height:62px} #outDots span{width:11px;height:11px} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="hud">
+    <div class="box"><div class="lbl">得点</div><div id="score" class="val">0</div></div>
+    <div class="box"><div class="lbl">アウト</div><div id="outDots"><span></span><span></span><span></span></div><div id="outText" class="sub">あと3アウト</div></div>
+    <div class="box diamond" aria-label="塁上の走者">
+      <svg id="diamondSvg" viewBox="0 0 64 64">
+        <path d="M32 54 L54 32 L32 10 L10 32 Z" fill="none" stroke="#5f8f6f" stroke-width="1.5"/>
+        <rect id="b2" class="base" x="25" y="3" width="14" height="14" transform="rotate(45 32 10)"/>
+        <rect id="b1" class="base" x="47" y="25" width="14" height="14" transform="rotate(45 54 32)"/>
+        <rect id="b3" class="base" x="3" y="25" width="14" height="14" transform="rotate(45 10 32)"/>
+        <path id="home" d="M26 50 h12 v5 l-6 6 l-6 -6 z" fill="#e5e7eb"/>
+      </svg>
+    </div>
+    <div class="box"><div class="lbl">直近の結果</div><div id="last" class="val small">—</div></div>
+  </header>
+  <div id="status"></div>
+  <div id="stage">
+    <canvas id="cv" width="400" height="700" aria-label="ピンボール盤面"></canvas>
+    <button id="mute" type="button" aria-label="音のオンオフ">🔊</button>
+    <div id="overlay">
+      <div class="card" id="titleCard">
+        <h1>⚾ 野球ピンボール</h1>
+        <p>ボールをターゲットに当てると<b>打撃結果</b>！<br>走者を進めてホームに帰すと1点。</p>
+        <div class="legend">
+          <div><span class="chip" style="background:var(--single)">ヒット</span>1つ進塁</div>
+          <div><span class="chip" style="background:var(--double)">2B</span>二塁打</div>
+          <div><span class="chip" style="background:var(--triple)">3B</span>三塁打</div>
+          <div><span class="chip" style="background:var(--hr)">HR</span>本塁打</div>
+        </div>
+        <p>ボールを下に落とすと<b>アウト</b>。<b>3アウトで試合終了</b>。</p>
+        <p class="keys">PC：左フリッパー Z / ← ・右フリッパー / / →<br>発射：Space（長押し→離す）<br>スマホ：下のボタンで操作</p>
+        <button class="bigbtn" id="startBtn" type="button">プレイボール！</button>
+      </div>
+      <div class="card" id="resultCard" hidden>
+        <h2>試合終了</h2>
+        <div class="lbl" style="font-size:13px">最終スコア</div>
+        <div class="final" id="finalScore">0点</div>
+        <table class="tbl" id="breakdown"></table>
+        <p id="comment"></p>
+        <button class="bigbtn" id="restartBtn" type="button">もう一度あそぶ</button>
+      </div>
+    </div>
+  </div>
+  <div id="controls">
+    <button class="ctl" id="btnL" type="button">◀ 左<br><small>Z / ←</small></button>
+    <button class="ctl launch" id="btnLaunch" type="button">発射<br><small>Space 長押し</small></button>
+    <button class="ctl" id="btnR" type="button">右 ▶<br><small>/ / →</small></button>
+  </div>
+</div>
+<script>
+(() => {
+'use strict';
+
+// ===== 調整値 =====
+const W = 400, H = 700, D = Math.PI / 180;
+const CFG = {
+  ballR: 9, gravity: 1100, dt: 1 / 600, maxSpeed: 2000,
+  wallE: 0.45, bumperE: 0.6, flipE: 0.25,
+  bumperKick: 480, targetKick: 220, hitCooldown: 1.0, resultGap: 0.6,
+  launchMin: 1350, launchMax: 1700, chargeTime: 1.0, autoLaunchSec: 8,
+  flipLen: 64, flipR0: 8, flipR1: 5, flipUpSpeed: 32, flipDownSpeed: 18,
+  stuckWindow: 3, stuckDist: 14,
+  respawnDelay: 1.2, endDelay: 1.6,
+  plungerY: 680, laneX: 350, spawnX: 365, spawnY: 170,
+};
+
+// ===== 乱数（テスト用にシード固定可） =====
+let seedV = (Date.now() ^ 0x9e3779b9) >>> 0;
+function rnd() {
+  seedV = (seedV + 0x6D2B79F5) | 0;
+  let t = Math.imul(seedV ^ (seedV >>> 15), 1 | seedV);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+// ===== 盤面 =====
+const walls = [];
+function seg(x1, y1, x2, y2, o = {}) { walls.push(Object.assign({ x1, y1, x2, y2 }, o)); }
+function arc(cx, cy, r, a0, a1, n) {
+  let px = cx + r * Math.cos(a0), py = cy + r * Math.sin(a0);
+  for (let i = 1; i <= n; i++) {
+    const a = a0 + (a1 - a0) * i / n, x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+    seg(px, py, x, y); px = x; py = y;
+  }
+}
+seg(20, 725, 20, 95);                         // 左外壁（スロープの下もドレインの高さまで塞ぐ）
+arc(95, 95, 75, 180 * D, 270 * D, 14);        // 左上カーブ
+seg(95, 20, 300, 20);                         // 天井
+arc(300, 100, 80, 270 * D, 360 * D, 14);      // 右上カーブ（発射球を左へ流す）
+seg(380, 100, 380, 725);                      // 右外壁
+seg(350, 150, 350, 725);                      // 発射レーンの仕切り
+seg(350, 40, 350, 150, { oneWay: true, gate: true }); // 盤面→レーンへの逆流防止（左からだけ当たる）
+seg(20, 520, 110, 612);                       // 左スロープ
+seg(350, 520, 260, 612);                      // 右スロープ
+seg(50, 112, 50, 262, { guide: true });        // 外周レーンのガイド（発射球はここを通って左インレーンへ流れる）
+seg(48, 440, 48, 505, { guide: true });       // 左インレーンのガイド
+seg(322, 440, 322, 505, { guide: true });     // 右インレーンのガイド
+// HRポケット：屋根つきで下からしか入れない。天井沿いを流れる発射球（y≒30〜45）とは屋根の上で離れている
+seg(155, 64, 185, 57, { cup: true });         // HRポケットの屋根（山形にして、球が上に乗ったまま止まらないように）
+seg(185, 57, 215, 64, { cup: true });
+seg(155, 64, 160, 122, { cup: true });        // HRポケットの左壁
+seg(215, 64, 210, 122, { cup: true });        // HRポケットの右壁
+seg(236, 105, 276, 109, { shelf: true });     // 3Bの下のひさし（少し傾けて球が乗ったまま止まらないように）
+seg(276, 109, 279, 84, { shelf: true });      // ひさしの右端の小さな壁（右上カーブから折り返す球の直撃を防ぐ）
+
+const TYPES = {
+  single: { name: 'ヒット', shout: 'ヒット！', label: 'ヒット', color: '#3b82f6' },
+  double: { name: '二塁打', shout: '二塁打！', label: '2B', color: '#16a34a' },
+  triple: { name: '三塁打', shout: '三塁打！', label: '3B', color: '#f59e0b' },
+  hr:     { name: '本塁打', shout: 'ホームラン！', label: 'HR', color: '#ef4444' },
+};
+// 打撃ターゲット7個（HRは中央バンパーの奥のポケット内で最も小さい）＋通常バンパー3個
+const circles = [
+  { x: 185, y: 92, r: 11, type: 'hr' },
+  { x: 255, y: 85, r: 10, type: 'triple' }, // HRポケットの右隣。下にひさしがあり、下からは直接当たらない
+  { x: 115, y: 90, r: 13, type: 'double' }, // HRポケットを挟んで3Bの反対側（ひさし無し）
+  { x: 92, y: 305, r: 22, type: 'single' }, { x: 278, y: 305, r: 22, type: 'single' },
+  { x: 145, y: 185, r: 15, type: 'bumper' }, { x: 225, y: 185, r: 15, type: 'bumper' },
+  { x: 185, y: 240, r: 16, type: 'bumper' },
+].map(c => Object.assign(c, { flash: 0, cool: 0 }));
+
+const flippers = [
+  { side: 'L', px: 110, py: 612, rest: 30 * D, up: -28 * D, ang: 30 * D, w: 0, pressed: false },
+  { side: 'R', px: 260, py: 612, rest: 150 * D, up: 208 * D, ang: 150 * D, w: 0, pressed: false },
+];
+
+const ball = { x: 0, y: 0, vx: 0, vy: 0, state: 'none', rot: 0 };
+
+// ===== ゲーム状態 =====
+const G = {};
+function resetState() {
+  Object.assign(G, {
+    phase: 'title', score: 0, outs: 0, bases: [false, false, false],
+    counts: { single: 0, double: 0, triple: 0, hr: 0 }, last: '—', lastType: '',
+    timers: [], msg: null, particles: [], runAnims: [], scoreFlash: 0, charge: 0, charging: false, idle: 0,
+    stuckT: 0, lastResultT: -9, homeFlash: 0, time: 0, ballNo: 0, sndT: 0,
+    stats: { escapes: 0, nudges: 0, autoLaunches: 0, launches: 0 },
+  });
+  if (!G.events) G.events = [];
+  ball.state = 'none';
+  for (const c of circles) { c.flash = 0; c.cool = 0; }
+  for (const f of flippers) { f.ang = f.rest; f.w = 0; }
+}
+resetState();
+
+function resetStuck() {
+  G.stuckT = 0; G.flipToggled = false;
+  G.sMinX = G.sMaxX = ball.x; G.sMinY = G.sMaxY = ball.y;
+}
+function after(sec, fn) { G.timers.push({ t: sec, fn }); }
+
+// 進塁ルール（純粋関数）
+function advance(b, type) {
+  let [b1, b2, b3] = b, runs = 0;
+  if (type === 'single') { runs = +b3; b3 = b2; b2 = b1; b1 = true; }
+  else if (type === 'double') { runs = +b3 + +b2; b3 = b1; b2 = true; b1 = false; }
+  else if (type === 'triple') { runs = +b1 + +b2 + +b3; b1 = false; b2 = false; b3 = true; }
+  else if (type === 'hr') { runs = +b1 + +b2 + +b3 + 1; b1 = b2 = b3 = false; }
+  return { bases: [b1, b2, b3], runs };
+}
+
+// 打撃・得点・アウトの知らせは盤面の上には出さず、盤面の外のステータス行に出す（ボールを隠さないため）
+function popup(text, color, opt = {}) {
+  const part = `<span style="color:${color};font-weight:800">${text}</span>`;
+  G.msg = { html: opt.append && G.msg ? G.msg.html + '　' + part : part, t: opt.life || 2.2 };
+}
+function burst(x, y, color, n = 14) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd() * Math.PI * 2, s = 80 + rnd() * 220;
+    G.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: 0.5 + rnd() * 0.4, color });
+  }
+}
+
+function onTargetHit(c) {
+  c.flash = 1;
+  if (G.phase !== 'play') return;
+  const before = G.bases.slice();
+  const res = advance(G.bases, c.type);
+  const full = before.every(Boolean);
+  G.bases = res.bases;
+  // 走者のアニメーション（打者は本塁から）。三塁打・本塁打では走者は全員生還
+  const move = { single: 1, double: 2, triple: 4, hr: 4 }[c.type], bat = { single: 1, double: 2, triple: 3, hr: 4 }[c.type];
+  G.runAnims = []; // 前の打撃のアニメは打ち切る
+  before.forEach((on, i) => { if (on) { const to = Math.min(4, i + 1 + move); G.runAnims.push({ from: i + 1, to, t: 0, dur: 0.22 * (to - i - 1) }); } });
+  G.runAnims.push({ from: 0, to: bat, t: 0, dur: 0.22 * bat });
+  G.counts[c.type]++;
+  G.score += res.runs;
+  G.last = TYPES[c.type].name; G.lastType = c.type;
+  const shout = (c.type === 'hr' && full) ? '満塁ホームラン！' : TYPES[c.type].shout;
+  popup(shout, TYPES[c.type].color);
+  burst(c.x, c.y, TYPES[c.type].color, c.type === 'hr' ? 40 : 16);
+  sfxHit(c.type);
+  if (res.runs > 0) {
+    popup(`+${res.runs}点（${res.runs}人ホームイン）`, '#facc15', { append: true });
+    G.homeFlash = 1.2; G.scoreFlash = 1;
+    sfxRun(res.runs);
+    bumpScore();
+  }
+  G.events.push({ kind: 'hit', result: c.type, before, after: res.bases.slice(), runs: res.runs, score: G.score, t: G.time });
+  updateHud();
+}
+
+function onDrain() {
+  ball.state = 'none';
+  G.charging = false; G.charge = 0;
+  G.outs++;
+  G.last = 'アウト'; G.lastType = 'out';
+  popup(`アウト（${['1', '2', '3'][G.outs - 1]}つ目）`, '#f87171');
+  sfxOut();
+  G.events.push({ kind: 'out', outs: G.outs, score: G.score, t: G.time });
+  updateHud();
+  if (G.outs >= 3) { popup('ゲームセット', '#ffffff', { append: true }); after(CFG.endDelay, endGame); }
+  else after(CFG.respawnDelay, spawnBall);
+}
+
+function spawnBall() {
+  if (G.phase !== 'play') return;
+  // 出現点は発射レーンの内側（左右の壁の間・天井より下）。ここから目に見えてプランジャーまで落ちる
+  ball.x = CFG.spawnX; ball.y = CFG.spawnY; ball.vx = 0; ball.vy = 0; ball.state = 'lane';
+  G.idle = 0; G.ballNo++; resetStuck();
+  G.events.push({ kind: 'spawn', x: ball.x, y: ball.y, t: G.time });
+}
+
+function startGame() {
+  ensureAudio();
+  resetState();
+  G.phase = 'play';
+  overlay.classList.add('hide');
+  updateHud();
+  startBgm();
+  after(0.3, spawnBall);
+  G.events.push({ kind: 'start', t: G.time });
+}
+
+// 得点ごとの試合終了コメント（下限の点数, コメント）。上から順に見て最初に当てはまるもの
+const COMMENTS = [
+  [100, 'AI打線'],
+  [70, '伝説の打線！'],
+  [50, '打線ビッグバン！！'],
+  [30, '打線大爆発！'],
+  [20, '打線爆発！'],
+  [10, '2桁！大量得点！'],
+  [4, '2桁得点を目指せ！'],
+  [1, '貧打、もっと頑張れ！'],
+  [0, '完封負け'],
+];
+function scoreComment(sc) { return COMMENTS.find(([min]) => sc >= min)[1]; }
+
+function endGame() {
+  G.phase = 'over';
+  ball.state = 'none';
+  const c = G.counts, total = c.single + c.double + c.triple + c.hr;
+  document.getElementById('finalScore').textContent = `${G.score}点`;
+  document.getElementById('breakdown').innerHTML =
+    `<tr><td>ヒット（単打）</td><td>${c.single}</td></tr>` +
+    `<tr><td>二塁打</td><td>${c.double}</td></tr>` +
+    `<tr><td>三塁打</td><td>${c.triple}</td></tr>` +
+    `<tr><td>本塁打</td><td>${c.hr}</td></tr>` +
+    `<tr><td>安打の合計</td><td>${total}</td></tr>`;
+  document.getElementById('comment').textContent = scoreComment(G.score);
+  document.getElementById('titleCard').hidden = true;
+  document.getElementById('resultCard').hidden = false;
+  overlay.classList.remove('hide');
+  G.events.push({ kind: 'end', score: G.score, t: G.time });
+  stopBgm(1.2);
+  sfxEnd();
+}
+
+// ===== 発射 =====
+function ballOnPlunger() {
+  return ball.state === 'lane' && ball.x > CFG.laneX && ball.y > CFG.plungerY - CFG.ballR - 6 && Math.abs(ball.vy) < 80;
+}
+function chargeStart() {
+  ensureAudio();
+  if (G.phase !== 'play') return;
+  G.charging = true; G.idle = 0;
+}
+function chargeRelease() {
+  if (!G.charging) return;
+  G.charging = false;
+  if (ballOnPlunger()) launch(G.charge);
+  G.charge = 0;
+}
+function launch(p) {
+  ball.y = Math.min(ball.y, CFG.plungerY - CFG.ballR);
+  ball.vy = -(CFG.launchMin + (CFG.launchMax - CFG.launchMin) * p);
+  ball.vx = 0;
+  G.stats.launches++; G.idle = 0;
+  sfxLaunch();
+}
+
+// ===== 物理 =====
+function collideSeg(w) {
+  const R = CFG.ballR;
+  if (w.oneWay && !(ball.x < w.x1 && ball.vx > 0)) return;
+  const ex = w.x2 - w.x1, ey = w.y2 - w.y1, L2 = ex * ex + ey * ey;
+  let t = ((ball.x - w.x1) * ex + (ball.y - w.y1) * ey) / L2;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const cx = w.x1 + ex * t, cy = w.y1 + ey * t;
+  let dx = ball.x - cx, dy = ball.y - cy, d = Math.hypot(dx, dy);
+  if (d >= R) return;
+  if (d < 1e-6) { dx = -ey; dy = ex; d = Math.hypot(dx, dy); }
+  const nx = dx / d, ny = dy / d;
+  ball.x = cx + nx * R; ball.y = cy + ny * R;
+  const vn = ball.vx * nx + ball.vy * ny;
+  if (vn < 0) {
+    ball.vx -= (1 + CFG.wallE) * vn * nx; ball.vy -= (1 + CFG.wallE) * vn * ny;
+    ball.vx *= 0.995; ball.vy *= 0.995;
+    if (vn < -250) sfxWall();
+  }
+}
+function collideCircle(c) {
+  const R = CFG.ballR + c.r;
+  let dx = ball.x - c.x, dy = ball.y - c.y, d = Math.hypot(dx, dy);
+  if (d >= R) return;
+  if (d < 1e-6) { dx = 0; dy = -1; d = 1; }
+  const nx = dx / d, ny = dy / d;
+  ball.x = c.x + nx * R; ball.y = c.y + ny * R;
+  let vn = ball.vx * nx + ball.vy * ny;
+  if (vn < 0) { ball.vx -= (1 + CFG.bumperE) * vn * nx; ball.vy -= (1 + CFG.bumperE) * vn * ny; vn = ball.vx * nx + ball.vy * ny; }
+  const kick = c.type === 'bumper' ? CFG.bumperKick : CFG.targetKick;
+  if (vn < kick) { ball.vx += (kick - vn) * nx; ball.vy += (kick - vn) * ny; }
+  if (c.cool <= 0) {
+    if (c.type === 'bumper') { c.cool = 0.15; c.flash = 1; sfxBumper(); burst(ball.x, ball.y, '#e5e7eb', 6); }
+    else if (G.time - G.lastResultT >= CFG.resultGap) { c.cool = CFG.hitCooldown; G.lastResultT = G.time; onTargetHit(c); }
+    else c.flash = Math.max(c.flash, 0.4); // 直前の打撃から間がない接触は、打撃にしない
+  }
+}
+function flipEnds(f) {
+  return { x0: f.px, y0: f.py, x1: f.px + Math.cos(f.ang) * CFG.flipLen, y1: f.py + Math.sin(f.ang) * CFG.flipLen };
+}
+function collideFlipper(f) {
+  const { x0, y0, x1, y1 } = flipEnds(f);
+  const ex = x1 - x0, ey = y1 - y0, L2 = ex * ex + ey * ey;
+  let t = ((ball.x - x0) * ex + (ball.y - y0) * ey) / L2;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const cx = x0 + ex * t, cy = y0 + ey * t;
+  const rad = CFG.flipR0 + (CFG.flipR1 - CFG.flipR0) * t, R = CFG.ballR + rad;
+  let dx = ball.x - cx, dy = ball.y - cy, d = Math.hypot(dx, dy);
+  if (d >= R) return;
+  if (d < 1e-6) { dx = 0; dy = -1; d = 1; }
+  const nx = dx / d, ny = dy / d;
+  ball.x = cx + nx * R; ball.y = cy + ny * R;
+  // 接触点の表面速度 = ω × r
+  const svx = -f.w * (cy - y0), svy = f.w * (cx - x0);
+  let rvx = ball.vx - svx, rvy = ball.vy - svy;
+  const vn = rvx * nx + rvy * ny;
+  if (vn < 0) {
+    rvx -= (1 + CFG.flipE) * vn * nx; rvy -= (1 + CFG.flipE) * vn * ny;
+    ball.vx = rvx + svx; ball.vy = rvy + svy;
+  }
+}
+function updateFlipper(f, dt) {
+  const target = f.pressed ? f.up : f.rest;
+  const sp = (f.pressed ? CFG.flipUpSpeed : CFG.flipDownSpeed) * dt;
+  const old = f.ang, diff = target - f.ang;
+  f.ang = Math.abs(diff) <= sp ? target : f.ang + Math.sign(diff) * sp;
+  f.w = (f.ang - old) / dt;
+}
+
+function physicsStep(dt) {
+  for (const f of flippers) updateFlipper(f, dt);
+  if (ball.state === 'none') return;
+  ball.vy += CFG.gravity * dt;
+  const sp = Math.hypot(ball.vx, ball.vy);
+  if (sp > CFG.maxSpeed) { ball.vx *= CFG.maxSpeed / sp; ball.vy *= CFG.maxSpeed / sp; }
+  ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+  ball.rot += ball.vx * dt / CFG.ballR;
+  for (const w of walls) collideSeg(w);
+  for (const c of circles) collideCircle(c);
+  for (const f of flippers) collideFlipper(f);
+  // プランジャー（レーンの床）
+  const floorY = CFG.plungerY + (G.charging ? 20 * G.charge : 0);
+  if (ball.x > CFG.laneX && ball.y > floorY - CFG.ballR) {
+    ball.y = floorY - CFG.ballR;
+    if (ball.vy > 0) ball.vy = ball.vy > 120 ? -ball.vy * 0.25 : 0;
+    ball.vx = 0;
+  }
+  // レーン⇔盤面の状態
+  if (ball.state === 'lane' && ball.x < CFG.laneX - 5) ball.state = 'field';
+  else if (ball.state === 'field' && ball.x > CFG.laneX + 2 && ball.y > 150) ball.state = 'lane';
+  // 盤外への脱出（起きない設計だが、起きたら記録してレーンに戻す）
+  if (!isFinite(ball.x) || !isFinite(ball.y) || ball.x < 10 || ball.x > 390 || ball.y < 10) {
+    G.stats.escapes++;
+    G.events.push({ kind: 'escape', x: ball.x, y: ball.y, t: G.time });
+    ball.x = CFG.spawnX; ball.y = CFG.spawnY; ball.vx = ball.vy = 0; ball.state = 'lane';
+  }
+  if (ball.y > H + 15 && ball.state === 'field') onDrain();
+}
+
+function update(dt) {
+  G.time += dt;
+  G.sndT = Math.max(0, G.sndT - dt);
+  // タイマー
+  for (let i = G.timers.length - 1; i >= 0; i--) {
+    const tm = G.timers[i]; tm.t -= dt;
+    if (tm.t <= 0) { G.timers.splice(i, 1); tm.fn(); }
+  }
+  if (G.charging) G.charge = Math.min(1, G.charge + dt / CFG.chargeTime);
+  // 自動発射（無操作でも試合が進むように）
+  if (G.phase === 'play' && ballOnPlunger() && !G.charging) {
+    G.idle += dt;
+    if (G.idle >= CFG.autoLaunchSec) { G.stats.autoLaunches++; launch(0.3 + 0.5 * rnd()); }
+  }
+  // 物理（固定刻み）
+  let acc = dt;
+  while (acc > 1e-9) { const h = Math.min(CFG.dt, acc); physicsStep(h); acc -= h; }
+  for (const c of circles) { c.cool = Math.max(0, c.cool - dt); c.flash = Math.max(0, c.flash - dt * 2.2); }
+  // 球詰まり対策：ボールが一定時間せまい範囲から出なければ、軽く弾き出す。
+  // フリッパーを押しっぱなしで球を乗せている（キャッチ）間は、正当な操作なので対象外。連打中は対象。
+  if (ball.state === 'field') {
+    const held = flippers.some(f => f.pressed);
+    G.stuckT += dt;
+    G.sMinX = Math.min(G.sMinX, ball.x); G.sMaxX = Math.max(G.sMaxX, ball.x);
+    G.sMinY = Math.min(G.sMinY, ball.y); G.sMaxY = Math.max(G.sMaxY, ball.y);
+    if (G.stuckT >= CFG.stuckWindow) {
+      const small = G.sMaxX - G.sMinX < CFG.stuckDist && G.sMaxY - G.sMinY < CFG.stuckDist;
+      if (small && !(held && !G.flipToggled)) {
+        ball.vx = (ball.x < 185 ? 1 : -1) * (100 + rnd() * 120); ball.vy = -380;
+        G.stats.nudges++; G.events.push({ kind: 'nudge', x: ball.x, y: ball.y, t: G.time });
+      }
+      resetStuck();
+    }
+  } else resetStuck();
+  // 演出
+  if (G.msg && (G.msg.t -= dt) <= 0) G.msg = null;
+  for (const p of G.particles) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; }
+  G.particles = G.particles.filter(p => p.t < p.life);
+  G.homeFlash = Math.max(0, G.homeFlash - dt);
+  G.scoreFlash = Math.max(0, G.scoreFlash - dt * 1.5);
+  for (const a of G.runAnims) a.t += dt;
+  G.runAnims = G.runAnims.filter(a => a.t < a.dur + (a.to === 4 ? 0.4 : 0));
+  updateStatus();
+}
+
+// ===== 描画 =====
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const stage = document.getElementById('stage'), overlay = document.getElementById('overlay');
+let scale = 1, dpr = 1;
+function fit() {
+  const r = stage.getBoundingClientRect();
+  scale = Math.max(0.1, Math.min(r.width / W, r.height / H));
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.width = Math.floor(W * scale) + 'px';
+  cv.style.height = Math.floor(H * scale) + 'px';
+  cv.width = Math.round(W * scale * dpr); cv.height = Math.round(H * scale * dpr);
+  draw();
+}
+
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+
+// 台の中のダイヤモンド：塁上の走者と得点を表示する（当たり判定は無い）
+const BASE_POS = [[185, 560], [300, 430], [185, 300], [70, 430], [185, 560]]; // 本塁・一塁・二塁・三塁・本塁
+function basePoint(p) { // p は 0（本塁）〜4（生還）の連続値
+  const i = Math.min(3, Math.floor(p)), k = p - i, a = BASE_POS[i], b = BASE_POS[i + 1];
+  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+}
+function drawRunner(x, y, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y);
+  ctx.shadowColor = '#facc15'; ctx.shadowBlur = 10;
+  ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(0, -13, 5, 0, Math.PI * 2); ctx.fill(); // 頭
+  ctx.beginPath(); ctx.moveTo(-6, -7); ctx.lineTo(6, -7); ctx.lineTo(4, 3); ctx.lineTo(-4, 3); ctx.closePath(); ctx.fill(); // 体
+  ctx.shadowBlur = 0; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+}
+function drawDiamond() {
+  ctx.save();
+  // 内野の土
+  ctx.globalAlpha = 0.22; ctx.fillStyle = '#c08a4a';
+  ctx.beginPath(); BASE_POS.slice(0, 4).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 0.55; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.globalAlpha = 1;
+  // 走っている途中の走者がいる塁は、着くまで点灯しない
+  const arriving = new Set(G.runAnims.filter(a => a.t < a.dur).map(a => a.to));
+  // 塁（一・二・三塁）
+  for (let i = 1; i <= 3; i++) {
+    const [x, y] = BASE_POS[i], on = G.bases[i - 1] && !arriving.has(i);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+    if (on) { ctx.shadowColor = '#facc15'; ctx.shadowBlur = 16; }
+    ctx.fillStyle = on ? '#facc15' : 'rgba(255,255,255,.85)';
+    ctx.fillRect(-8, -8, 16, 16);
+    ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = on ? '#fff' : 'rgba(0,0,0,.35)'; ctx.strokeRect(-8, -8, 16, 16);
+    ctx.restore();
+    if (on) drawRunner(x, y - 6);
+  }
+  // 本塁（得点時に光る）
+  const hf = G.homeFlash > 0 && Math.floor(G.homeFlash * 6) % 2 === 0;
+  ctx.save(); ctx.translate(BASE_POS[0][0], BASE_POS[0][1]);
+  if (hf) { ctx.shadowColor = '#facc15'; ctx.shadowBlur = 20; }
+  ctx.fillStyle = hf ? '#facc15' : '#ffffff';
+  ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(9, -9); ctx.lineTo(9, 1); ctx.lineTo(0, 9); ctx.lineTo(-9, 1); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // 塁間を走る走者
+  for (const a of G.runAnims) {
+    const k = Math.min(1, Math.max(0, a.t / a.dur)), [x, y] = basePoint(a.from + (a.to - a.from) * k);
+    const fade = a.to === 4 && k >= 1 ? 1 - Math.min(1, (a.t - a.dur) / 0.4) : 1;
+    if (a.t >= 0) drawRunner(x, y - 6, fade);
+  }
+  // 得点（ダイヤモンドの中央）
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('得点', 185, 400);
+  const sb = G.scoreFlash > 0 ? 1 + 0.5 * G.scoreFlash : 1;
+  ctx.save(); ctx.translate(185, 438); ctx.scale(sb, sb);
+  ctx.font = '900 46px sans-serif'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.55)';
+  ctx.strokeText(String(G.score), 0, 0);
+  ctx.fillStyle = G.scoreFlash > 0 ? '#facc15' : '#ffffff'; ctx.fillText(String(G.score), 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  // 芝
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1f6b3a'); g.addColorStop(1, '#14502b');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.08; ctx.fillStyle = '#fff';
+  for (let y = 0; y < H; y += 40) ctx.fillRect(0, y, W, 20);
+  ctx.globalAlpha = 1;
+  drawDiamond();
+  // 盤外（壁の外側）
+  ctx.fillStyle = '#0d2616';
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W, 0); ctx.lineTo(W, 100); ctx.arc(300, 100, 80, 0, -Math.PI / 2, true);
+  ctx.lineTo(95, 20); ctx.arc(95, 95, 75, -Math.PI / 2, Math.PI, true); ctx.lineTo(0, 95); ctx.closePath(); ctx.fill();
+  ctx.fillRect(0, 95, 20, H); ctx.fillRect(380, 100, 20, H);
+  // 発射レーン
+  ctx.fillStyle = 'rgba(60,40,20,.45)'; ctx.fillRect(350, 150, 30, 550);
+  // ドレイン（アウトゾーン）
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.moveTo(20, 520); ctx.lineTo(110, 612); ctx.lineTo(110, H); ctx.lineTo(20, H); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(350, 520); ctx.lineTo(260, 612); ctx.lineTo(260, H); ctx.lineTo(350, H); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(239,68,68,.22)'; ctx.fillRect(110, 655, 150, 45);
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('▼ ここに落ちたらアウト ▼', 185, 684);
+  // 壁
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const w of walls) {
+    ctx.beginPath(); ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2);
+    if (w.gate) { ctx.strokeStyle = 'rgba(253,224,71,.5)'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); }
+    else if (w.cup) { ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 5; ctx.setLineDash([]); }
+    else if (w.shelf) { ctx.strokeStyle = '#fcd34d'; ctx.lineWidth = 5; ctx.setLineDash([]); }
+    else { ctx.strokeStyle = '#f3ead2'; ctx.lineWidth = w.guide ? 4 : 5; ctx.setLineDash([]); }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // HRポケットの光
+  ctx.fillStyle = 'rgba(239,68,68,.15)';
+  ctx.beginPath(); ctx.moveTo(155, 64); ctx.lineTo(185, 57); ctx.lineTo(215, 64); ctx.lineTo(210, 122); ctx.lineTo(160, 122); ctx.closePath(); ctx.fill();
+  // ターゲット・バンパー
+  for (const c of circles) {
+    const s = 1 + 0.35 * c.flash, r = c.r * s;
+    ctx.save(); ctx.translate(c.x, c.y);
+    if (c.type === 'bumper') {
+      ctx.fillStyle = c.flash > 0 ? '#ffffff' : '#94a3b8';
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = '#e2e8f0'; ctx.stroke();
+      ctx.fillStyle = '#334155'; ctx.font = `bold ${Math.round(r)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('★', 0, 1);
+    } else {
+      const T = TYPES[c.type];
+      const pulse = c.type === 'hr' ? 0.5 + 0.5 * Math.sin(G.time * 5) : 0;
+      ctx.shadowColor = T.color; ctx.shadowBlur = 8 + 18 * c.flash + 8 * pulse;
+      ctx.fillStyle = c.flash > 0.5 ? '#ffffff' : T.color;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 3; ctx.strokeStyle = c.type === 'hr' ? '#facc15' : '#ffffff'; ctx.stroke();
+      ctx.fillStyle = c.flash > 0.5 ? T.color : '#ffffff';
+      const fs = c.type === 'single' ? 12 : 10;
+      ctx.font = `900 ${Math.round(fs * s)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(T.label, 0, 1);
+    }
+    ctx.restore();
+  }
+  // フリッパー
+  for (const f of flippers) {
+    const { x0, y0, x1, y1 } = flipEnds(f);
+    const a = Math.atan2(y1 - y0, x1 - x0), L = CFG.flipLen;
+    ctx.save(); ctx.translate(x0, y0); ctx.rotate(a);
+    ctx.beginPath();
+    ctx.arc(0, 0, CFG.flipR0, Math.PI / 2, Math.PI * 1.5);
+    ctx.lineTo(L, -CFG.flipR1); ctx.arc(L, 0, CFG.flipR1, -Math.PI / 2, Math.PI / 2); ctx.closePath();
+    ctx.fillStyle = f.pressed ? '#fde047' : '#f8fafc'; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#b91c1c'; ctx.stroke();
+    ctx.fillStyle = '#b91c1c'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  // プランジャー
+  const py = CFG.plungerY + (G.charging ? 20 * G.charge : 0);
+  ctx.fillStyle = '#cbd5e1'; ctx.fillRect(352, py, 26, 6);
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 6; i++) { const yy = py + 6 + i * ((H - py - 6) / 6); ctx.lineTo(i % 2 ? 374 : 356, yy); }
+  ctx.stroke();
+  if (G.charging) {
+    ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(386, 520, 8, 150);
+    ctx.fillStyle = G.charge > 0.95 ? '#facc15' : '#ef4444'; ctx.fillRect(386, 670 - 150 * G.charge, 8, 150 * G.charge);
+  }
+  // ボール（野球ボール）
+  if (ball.state !== 'none') {
+    const R = CFG.ballR;
+    ctx.save(); ctx.translate(ball.x, ball.y);
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.arc(2, 3, R, 0, Math.PI * 2); ctx.fill();
+    ctx.rotate(ball.rot);
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#d4d4d4'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(-R * 1.25, 0, R * 0.85, -0.75, 0.75); ctx.stroke();
+    ctx.beginPath(); ctx.arc(R * 1.25, 0, R * 0.85, Math.PI - 0.75, Math.PI + 0.75); ctx.stroke();
+    ctx.restore();
+  }
+  // パーティクル
+  for (const p of G.particles) {
+    ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ===== HUD =====
+const $score = document.getElementById('score'), $last = document.getElementById('last');
+const $outText = document.getElementById('outText'), $status = document.getElementById('status');
+const $dots = [...document.querySelectorAll('#outDots span')], $bases = ['b1', 'b2', 'b3'].map(id => document.getElementById(id));
+const $home = document.getElementById('home'), $launch = document.getElementById('btnLaunch');
+function updateHud() {
+  $score.textContent = G.score;
+  $dots.forEach((d, i) => d.classList.toggle('on', i < G.outs));
+  $outText.textContent = G.outs >= 3 ? '試合終了' : `あと${3 - G.outs}アウト`;
+  $bases.forEach((b, i) => b.classList.toggle('on', G.bases[i]));
+  $last.textContent = G.last; $last.className = 'val small ' + (G.lastType || '');
+}
+function bumpScore() { $score.classList.remove('bump'); void $score.offsetWidth; $score.classList.add('bump'); }
+let lastStatus = '';
+function updateStatus() {
+  let s = '';
+  if (G.phase === 'play') {
+    if (ballOnPlunger()) {
+      const left = Math.ceil(CFG.autoLaunchSec - G.idle);
+      s = G.charging ? `パワー ${Math.round(G.charge * 100)}% … 離して発射！`
+        : `<b>発射ボタン（Space）</b>を長押し → 離して発射` + (left <= 3 ? `（自動発射まで${left}）` : '');
+    } else if (ball.state === 'lane') s = 'ボールがレーンに入りました';
+    else if (ball.state === 'field') s = 'フリッパーで打ち返して、ターゲットに当てよう！';
+    else if (G.outs < 3) s = '次のボールを準備中…';
+    else s = '試合終了';
+  }
+  if (G.msg && G.phase === 'play') s = G.msg.html;
+  if (s !== lastStatus) { $status.innerHTML = s; lastStatus = s; }
+  $launch.style.setProperty('--p', G.charging ? G.charge.toFixed(3) : '0');
+  $launch.classList.toggle('ready', G.phase === 'play' && ballOnPlunger() && !G.charging);
+  $home.classList.toggle('flash', G.homeFlash > 0 && Math.floor(G.homeFlash * 6) % 2 === 0);
+}
+
+// ===== 音（Web Audio で合成） =====
+let ac = null, muted = false;
+function ensureAudio() {
+  try {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended' && !document.hidden) ac.resume();
+  } catch (e) { ac = null; }
+  loadBgm();
+}
+// 効果音は、どの AudioContext でも指定した時刻に鳴らせる形にしている（告知動画の書き出しでも同じ音を使う）
+function toneAt(ctx, out, when, freq, dur, type = 'square', vol = 0.06, slide = 0, delay = 0) {
+  const t = when + delay, o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.02);
+}
+// 告知動画の撮影中は鳴らさずに記録する
+let sfxCapture = false, sfxQueue = [];
+function tone(freq, dur, type = 'square', vol = 0.06, slide = 0, delay = 0) {
+  if (sfxCapture) { sfxQueue.push({ name: 'tone', args: [freq, dur, type, vol, slide, delay] }); return; }
+  if (!ac || muted || manualMode) return;
+  try { toneAt(ac, ac.destination, ac.currentTime, freq, dur, type, vol, slide, delay); }
+  catch (e) { /* 音が出なくてもゲームは続ける */ }
+}
+// ===== BGM =====
+// 球審ジャッジと同じ応援風の自作曲（トランペット・太鼓・メガホン・観客のざわめき。後半は三三七拍子）。
+// 150BPM・8小節（12.8秒）を最初に一度だけ合成し、試合中にループ再生する
+const BGM_VOL = 0.09;   // 効果音とのつり合いで決めた音量
+const BPM = 150, BEAT = 60 / BPM, BARS = 8, BGM_LOOP_SEC = BARS * 4 * BEAT;
+// 半音（0 = C5）と長さ（8分音符単位）。null は休み
+const RIFF = [
+  [[-5, 1], [0, 1], [0, 1], [4, 1], [7, 2], [4, 1], [0, 1]],
+  [[2, 1], [2, 1], [4, 1], [5, 1], [4, 2], [0, 2]],
+  [[-5, 1], [0, 1], [0, 1], [4, 1], [7, 2], [9, 1], [7, 1]],
+  [[5, 1], [4, 1], [2, 1], [4, 1], [0, 3], [null, 1]],
+  // 三三七拍子（後半4小節）: トランペットは拍に合わせて短く吹く
+  [[7, 2], [7, 2], [7, 2], [null, 2]],
+  [[9, 2], [9, 2], [9, 2], [null, 2]],
+  [[7, 2], [7, 2], [7, 2], [7, 2]],
+  [[12, 2], [12, 2], [12, 2], [null, 2]],
+];
+// 太鼓を打つ拍（小節内の 8分音符の位置）
+const DRUM = [
+  [0, 2, 4, 6], [0, 2, 4, 5, 6], [0, 2, 4, 6], [0, 2, 4, 5, 6],
+  [0, 2, 4], [0, 2, 4], [0, 2, 4, 6], [0, 2, 4],
+];
+function brass(ctx, out, semi, t, dur, vol) {
+  const f = 523.25 * 2 ** (semi / 12);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.Q.value = 2;
+  lp.frequency.setValueAtTime(f * 1.5, t);
+  lp.frequency.linearRampToValueAtTime(f * 6, t + 0.04);
+  lp.frequency.exponentialRampToValueAtTime(f * 3, t + dur);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.025);
+  g.gain.setValueAtTime(vol * 0.8, t + Math.max(0.03, dur - 0.05));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  lp.connect(g).connect(out);
+  // 少しずらした 2 本 + 3度下のハモり
+  for (const [mul, det, v] of [[1, -6, 1], [1, 7, 1], [2 ** (-4 / 12), 0, 0.45]]) {
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = f * mul; o.detune.value = det; og.gain.value = v;
+    o.connect(og).connect(lp); o.start(t); o.stop(t + dur + 0.02);
+  }
+}
+function drum(ctx, out, t, vol) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(130, t);
+  o.frequency.exponentialRampToValueAtTime(55, t + 0.18);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+  o.connect(g).connect(out); o.start(t); o.stop(t + 0.32);
+}
+function noiseBuffer(ctx, sec) {
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * sec), ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+}
+// メガホンを打ち鳴らす音
+function clap(ctx, out, noise, t, vol) {
+  const s = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+  s.buffer = noise; bp.type = 'bandpass'; bp.frequency.value = 1600; bp.Q.value = 1.2;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  s.connect(bp).connect(g).connect(out);
+  s.start(t, Math.random() * 0.5, 0.1);
+}
+function renderCheer(sampleRate) {
+  const ctx = new OfflineAudioContext(1, Math.ceil(sampleRate * BGM_LOOP_SEC), sampleRate);
+  const bus = ctx.createGain();
+  bus.gain.value = 0.8; bus.connect(ctx.destination);
+  const noise = noiseBuffer(ctx, 1), E = BEAT / 2;
+  for (let bar = 0; bar < BARS; bar++) {
+    const t0 = bar * 4 * BEAT;
+    let pos = 0;
+    for (const [semi, len] of RIFF[bar]) {
+      if (semi !== null) brass(ctx, bus, semi, t0 + pos * E, len * E * 0.92, 0.09);
+      pos += len;
+    }
+    for (const e of DRUM[bar]) drum(ctx, bus, t0 + e * E, 0.9);
+    // メガホン: 前半は裏拍、三三七拍子は太鼓と同時
+    for (const e of (bar < 4 ? [1, 3, 5, 7] : DRUM[bar])) clap(ctx, bus, noise, t0 + e * E, 0.35);
+  }
+  // 観客のざわめき（ループの継ぎ目が目立たないよう一定の音量）
+  const crowd = ctx.createBufferSource(), cf = ctx.createBiquadFilter(), cg = ctx.createGain();
+  crowd.buffer = noiseBuffer(ctx, BGM_LOOP_SEC);
+  cf.type = 'bandpass'; cf.frequency.value = 700; cf.Q.value = 0.5; cg.gain.value = 0.05;
+  crowd.connect(cf).connect(cg).connect(ctx.destination);
+  crowd.start(0);
+  return ctx.startRendering();
+}
+
+let bgmBuf = null, bgmLoading = false, bgmSrc = null, bgmGain = null, bgmWanted = false;
+function loadBgm() {
+  if (!ac || bgmBuf || bgmLoading || !window.OfflineAudioContext) return;
+  bgmLoading = true;
+  try {
+    renderCheer(ac.sampleRate)
+      .then(b => { bgmBuf = b; if (bgmWanted) startBgm(); })
+      .catch(() => { /* BGM が作れなくてもゲームは続ける */ });
+  } catch (e) { /* 同上 */ }
+}
+function startBgm() {
+  bgmWanted = true;
+  if (sfxCapture) { sfxQueue.push({ name: 'bgm', args: ['start'] }); return; }
+  if (!ac || !bgmBuf || bgmSrc) return;
+  try {
+    const src = ac.createBufferSource(), g = ac.createGain(), t = ac.currentTime;
+    src.buffer = bgmBuf; src.loop = true;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(muted ? 0.0001 : BGM_VOL, t + 0.6);
+    src.connect(g).connect(ac.destination);
+    src.start();
+    bgmSrc = src; bgmGain = g;
+  } catch (e) { bgmSrc = null; bgmGain = null; }
+}
+function stopBgm(fade = 0.8) {
+  bgmWanted = false;
+  if (sfxCapture) { sfxQueue.push({ name: 'bgm', args: ['stop', fade] }); return; }
+  if (!bgmSrc || !ac) return;
+  const t = ac.currentTime, g = bgmGain.gain;
+  g.cancelScheduledValues(t);
+  g.setValueAtTime(Math.max(0.0001, g.value), t);
+  g.exponentialRampToValueAtTime(0.0001, t + fade);
+  bgmSrc.stop(t + fade + 0.05);
+  bgmSrc = null; bgmGain = null;
+}
+function applyBgmMute() {
+  if (!ac || !bgmGain) return;
+  const t = ac.currentTime;
+  bgmGain.gain.cancelScheduledValues(t);
+  bgmGain.gain.setTargetAtTime(muted ? 0.0001 : BGM_VOL, t, 0.08);
+}
+// 告知動画の書き出し用: 記録した音を、渡された AudioContext（OfflineAudioContext）で鳴らし直す
+const PROMO_BGM_VOL = 0.13; // 動画ではゲームの既定より少し大きく
+let promoBgmBuf = null;
+function renderSound(ctx, name, args, when) {
+  if (name === 'tone') { toneAt(ctx, ctx.destination, when, ...args); return; }
+  if (name !== 'bgm') return;
+  const [op, arg] = args;
+  const playing = !!ctx.__bgm;
+  if ((op === 'start' || (op === 'state' && arg)) && !playing && promoBgmBuf) {
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = promoBgmBuf; src.loop = true;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(PROMO_BGM_VOL, when + 0.6);
+    src.connect(g).connect(ctx.destination); src.start(when);
+    ctx.__bgm = { src, g };
+  } else if ((op === 'stop' || (op === 'state' && !arg)) && playing) {
+    const fade = op === 'stop' ? arg : 0.3, { src, g } = ctx.__bgm;
+    g.gain.setValueAtTime(PROMO_BGM_VOL, when);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + fade);
+    src.stop(when + fade + 0.05);
+    ctx.__bgm = null;
+  }
+}
+
+// タブを隠したら音を止める
+document.addEventListener('visibilitychange', () => {
+  if (!ac) return;
+  try { document.hidden ? ac.suspend() : ac.resume(); } catch (e) { /* 何もしない */ }
+});
+
+function sfxFlip() { tone(180, 0.05, 'square', 0.025); }
+function sfxWall() { if (G.sndT > 0) return; G.sndT = 0.06; tone(320, 0.03, 'triangle', 0.02); }
+function sfxBumper() { tone(520, 0.09, 'triangle', 0.06, 1.6); }
+function sfxLaunch() { tone(120, 0.3, 'sawtooth', 0.04, 4); }
+function sfxHit(type) {
+  const n = { single: 1, double: 2, triple: 3, hr: 4 }[type];
+  const notes = [523, 659, 784, 1047];
+  for (let i = 0; i < n; i++) tone(notes[i], 0.14, 'square', 0.05, 0, i * 0.07);
+  if (type === 'hr') for (let i = 0; i < 4; i++) tone(notes[i] * 2, 0.2, 'triangle', 0.05, 0, 0.32 + i * 0.09);
+}
+function sfxRun(n) { for (let i = 0; i < n; i++) { tone(880, 0.12, 'triangle', 0.06, 0, 0.25 + i * 0.16); tone(1320, 0.16, 'triangle', 0.05, 0, 0.31 + i * 0.16); } }
+function sfxOut() { tone(260, 0.45, 'sawtooth', 0.05, 0.4); }
+function sfxEnd() { [523, 392, 330, 262].forEach((f, i) => tone(f, 0.25, 'triangle', 0.06, 0, i * 0.18)); }
+
+// ===== 入力 =====
+function setFlip(side, on) {
+  const f = flippers[side === 'L' ? 0 : 1];
+  if (f.pressed === on) return;
+  f.pressed = on; G.flipToggled = true;
+  if (on) { ensureAudio(); sfxFlip(); }
+  document.getElementById(side === 'L' ? 'btnL' : 'btnR').classList.toggle('on', on);
+}
+const LKEYS = ['KeyZ', 'ArrowLeft'], RKEYS = ['Slash', 'ArrowRight', 'NumpadDivide'], SKEYS = ['Space', 'ArrowDown', 'Enter'];
+window.addEventListener('keydown', e => {
+  const k = e.code, isL = LKEYS.includes(k) || e.key === 'z' || e.key === 'Z', isR = RKEYS.includes(k) || e.key === '/';
+  if (isL || isR || SKEYS.includes(k)) e.preventDefault();
+  if (e.repeat) return;
+  if (G.phase !== 'play') {
+    if ((k === 'Space' || k === 'Enter') && !overlay.classList.contains('hide')) startGame();
+    return;
+  }
+  if (isL) setFlip('L', true);
+  if (isR) setFlip('R', true);
+  if (SKEYS.includes(k)) chargeStart();
+});
+window.addEventListener('keyup', e => {
+  const k = e.code;
+  if (LKEYS.includes(k) || e.key === 'z' || e.key === 'Z') setFlip('L', false);
+  if (RKEYS.includes(k) || e.key === '/') setFlip('R', false);
+  if (SKEYS.includes(k)) chargeRelease();
+});
+window.addEventListener('blur', () => { setFlip('L', false); setFlip('R', false); chargeRelease(); });
+
+function holdButton(el, down, up) {
+  const active = new Set();
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); active.add(e.pointerId);
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    down();
+  });
+  const end = e => { if (!active.delete(e.pointerId)) return; if (active.size === 0) up(); };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); el.addEventListener('lostpointercapture', end);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+holdButton(document.getElementById('btnL'), () => setFlip('L', true), () => setFlip('L', false));
+holdButton(document.getElementById('btnR'), () => setFlip('R', true), () => setFlip('R', false));
+holdButton($launch, chargeStart, chargeRelease);
+// 盤面の左半分／右半分のタップでもフリッパーが動く
+{
+  const map = new Map();
+  cv.addEventListener('pointerdown', e => {
+    if (G.phase !== 'play') return;
+    e.preventDefault();
+    const r = cv.getBoundingClientRect(), side = (e.clientX - r.left) < r.width / 2 ? 'L' : 'R';
+    map.set(e.pointerId, side); try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    setFlip(side, true);
+  });
+  const end = e => { const s = map.get(e.pointerId); if (!s) return; map.delete(e.pointerId); if (![...map.values()].includes(s)) setFlip(s, false); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+}
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('mute').addEventListener('click', e => {
+  muted = !muted; e.currentTarget.textContent = muted ? '🔇' : '🔊'; ensureAudio(); applyBgmMute();
+});
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
+
+// ===== ループ =====
+let manualMode = false, speed = 1, lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (!manualMode) update(dt * speed);
+  draw();
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize', fit);
+if (window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+fit(); updateHud(); requestAnimationFrame(frame);
+
+// ===== 確認用の入口（自動テスト・告知動画用） =====
+let bot = null;
+function botTick(h) {
+  if (!bot || G.phase !== 'play') return;
+  const r = () => ((bot.rs = (bot.rs * 1664525 + 1013904223) >>> 0) / 4294967296);
+  if (ball.state === 'lane' && ballOnPlunger()) {
+    if (!G.charging) { chargeStart(); bot.hold = 0.45 + r() * 0.55; }
+    else if ((bot.hold -= h) <= 0) chargeRelease();
+  }
+  const near = ball.y > 560 && ball.y < 640 && ball.vy > -50;
+  if (near && ball.x < 185 && ball.x > 90 && bot.l <= 0) bot.l = 0.2;
+  if (near && ball.x >= 185 && ball.x < 280 && bot.r <= 0) bot.r = 0.2;
+  bot.l -= h; bot.r -= h;
+  setFlip('L', bot.l > 0); setFlip('R', bot.r > 0);
+}
+window.__game = {
+  CFG, walls, circles, flippers, ball, advance,
+  state: () => ({
+    phase: G.phase, score: G.score, outs: G.outs, bases: G.bases.slice(), counts: Object.assign({}, G.counts),
+    last: G.last, ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, state: ball.state },
+    stats: Object.assign({}, G.stats), charging: G.charging, idle: G.idle, ballNo: G.ballNo, time: G.time,
+    flippers: flippers.map(f => ({ ang: f.ang, pressed: f.pressed })),
+    hud: { score: $score.textContent, outText: $outText.textContent, last: $last.textContent,
+      bases: $bases.map(b => b.classList.contains('on')), dots: $dots.filter(d => d.classList.contains('on')).length },
+  }),
+  start: startGame,
+  manual(on) { manualMode = !!on; lastT = performance.now(); },
+  step(sec, chunk = 1 / 60) { let t = sec; while (t > 1e-9) { const h = Math.min(chunk, t); botTick(h); update(h); t -= h; } draw(); },
+  // 告知動画・確認用の自動操作。球がフリッパーに近づいたら打ち、発射も自動で行う（遊び方は変えない）
+  bot(on, seedN = 1) { bot = on ? { l: 0, r: 0, hold: 0, rs: seedN >>> 0 } : null; if (!on) { setFlip('L', false); setFlip('R', false); } },
+  audio: {
+    capture(on) {
+      sfxCapture = !!on;
+      if (on && !promoBgmBuf && window.OfflineAudioContext) renderCheer(44100).then(b => { promoBgmBuf = b; }).catch(() => {});
+    },
+    drain() { const q = sfxQueue; sfxQueue = []; return q; },
+    render: renderSound,
+    resync() { sfxQueue.push({ name: 'bgm', args: ['state', bgmWanted] }); },
+    ready: () => !!promoBgmBuf,
+  },
+  render: draw,
+  setSpeed(x) { speed = x; },
+  seed(n) { seedV = n >>> 0; },
+  press(side, on) { setFlip(side, on); },
+  chargeStart, chargeRelease,
+  placeBall(x, y, vx = 0, vy = 0, state = 'field') { Object.assign(ball, { x, y, vx, vy, state }); resetStuck(); },
+  setBases(b) { G.bases = b.map(Boolean); updateHud(); },
+  drainEvents() { const e = G.events; G.events = []; return e.map(x => Object.assign({ type: x.kind }, x)); },
+  clearTimers() { G.timers = []; },
+  scoreComment,
+  bgmState: () => ({ ready: !!bgmBuf, playing: !!bgmSrc, wanted: bgmWanted, muted,
+    gain: bgmGain ? bgmGain.gain.value : 0, loop: bgmBuf ? bgmBuf.duration : 0, ctx: ac ? ac.state : 'none' }),
+};
+})();
+</script>
+</body>
+</html>
