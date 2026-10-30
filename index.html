@@ -145,7 +145,10 @@ const CFG = {
   wallE: 0.45, bumperE: 0.6, flipE: 0.25,
   bumperKick: 480, targetKick: 220, hitCooldown: 1.0, resultGap: 0.6,
   launchMin: 1350, launchMax: 1700, chargeTime: 1.0, autoLaunchSec: 8,
-  flipLen: 64, flipR0: 8, flipR1: 5, flipUpSpeed: 32, flipDownSpeed: 18,
+  flipLen: 64,
+  // フリッパーはバットの形。根元（軸）からの位置 t（0〜1）と太さ（半径）の組。グリップエンド → 細いグリップ → 太い芯
+  batProfile: [[0, 6], [0.04, 6], [0.11, 3.4], [0.34, 3.6], [0.82, 6.5], [1, 5.8]],
+  flipUpSpeed: 32, flipDownSpeed: 18,
   stuckWindow: 3, stuckDist: 14,
   respawnDelay: 1.2, endDelay: 1.6,
   plungerY: 680, laneX: 350, spawnX: 365, spawnY: 170,
@@ -416,13 +419,24 @@ function collideCircle(c) {
 function flipEnds(f) {
   return { x0: f.px, y0: f.py, x1: f.px + Math.cos(f.ang) * CFG.flipLen, y1: f.py + Math.sin(f.ang) * CFG.flipLen };
 }
+// バットの太さ。表示と当たり判定で同じ値を使う
+function batR(t) {
+  const P = CFG.batProfile;
+  for (let i = 1; i < P.length; i++) {
+    if (t <= P[i][0]) {
+      const [t0, r0] = P[i - 1], [t1, r1] = P[i], u = (t - t0) / (t1 - t0), k = u * u * (3 - 2 * u);
+      return r0 + (r1 - r0) * k;
+    }
+  }
+  return P[P.length - 1][1];
+}
 function collideFlipper(f) {
   const { x0, y0, x1, y1 } = flipEnds(f);
   const ex = x1 - x0, ey = y1 - y0, L2 = ex * ex + ey * ey;
   let t = ((ball.x - x0) * ex + (ball.y - y0) * ey) / L2;
   t = t < 0 ? 0 : t > 1 ? 1 : t;
   const cx = x0 + ex * t, cy = y0 + ey * t;
-  const rad = CFG.flipR0 + (CFG.flipR1 - CFG.flipR0) * t, R = CFG.ballR + rad;
+  const R = CFG.ballR + batR(t);
   let dx = ball.x - cx, dy = ball.y - cy, d = Math.hypot(dx, dy);
   if (d >= R) return;
   if (d < 1e-6) { dx = 0; dy = -1; d = 1; }
@@ -659,17 +673,35 @@ function draw() {
     }
     ctx.restore();
   }
-  // フリッパー
+  // フリッパー（バット）
   for (const f of flippers) {
     const { x0, y0, x1, y1 } = flipEnds(f);
-    const a = Math.atan2(y1 - y0, x1 - x0), L = CFG.flipLen;
+    const a = Math.atan2(y1 - y0, x1 - x0), L = CFG.flipLen, N = 32;
     ctx.save(); ctx.translate(x0, y0); ctx.rotate(a);
-    ctx.beginPath();
-    ctx.arc(0, 0, CFG.flipR0, Math.PI / 2, Math.PI * 1.5);
-    ctx.lineTo(L, -CFG.flipR1); ctx.arc(L, 0, CFG.flipR1, -Math.PI / 2, Math.PI / 2); ctx.closePath();
-    ctx.fillStyle = f.pressed ? '#fde047' : '#f8fafc'; ctx.fill();
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#b91c1c'; ctx.stroke();
-    ctx.fillStyle = '#b91c1c'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    const outline = () => {
+      ctx.beginPath();
+      ctx.arc(0, 0, batR(0), Math.PI / 2, Math.PI * 1.5);
+      for (let i = 0; i <= N; i++) { const t = i / N; ctx.lineTo(t * L, -batR(t)); }
+      ctx.arc(L, 0, batR(1), -Math.PI / 2, Math.PI / 2);
+      for (let i = N; i >= 0; i--) { const t = i / N; ctx.lineTo(t * L, batR(t)); }
+      ctx.closePath();
+    };
+    outline();
+    const g = ctx.createLinearGradient(0, -7, 0, 7);
+    if (f.pressed) { g.addColorStop(0, '#fef3c7'); g.addColorStop(0.45, '#fcd34d'); g.addColorStop(1, '#d97706'); }
+    else { g.addColorStop(0, '#fbe7c2'); g.addColorStop(0.45, '#e2b77a'); g.addColorStop(1, '#a8743c'); }
+    ctx.fillStyle = g; ctx.fill();
+    // グリップテープと木目
+    ctx.save(); outline(); ctx.clip();
+    ctx.fillStyle = '#b91c1c'; ctx.fillRect(0.09 * L, -8, 0.27 * L, 16);
+    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;
+    for (let x = 0.09 * L + 3; x < 0.36 * L; x += 3.5) { ctx.beginPath(); ctx.moveTo(x, -5); ctx.lineTo(x - 2.5, 5); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(120,70,20,.35)'; ctx.lineWidth = 0.8;
+    for (const yy of [-3.5, 1.5, 4.5]) { ctx.beginPath(); ctx.moveTo(0.42 * L, yy * 0.6); ctx.quadraticCurveTo(0.75 * L, yy, L + 6, yy * 0.9); ctx.stroke(); }
+    ctx.restore();
+    outline(); ctx.lineWidth = 2; ctx.strokeStyle = '#6b3a12'; ctx.stroke();
+    // 軸（グリップエンド）
+    ctx.fillStyle = '#6b3a12'; ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   // プランジャー
@@ -1027,7 +1059,7 @@ function botTick(h) {
   setFlip('L', bot.l > 0); setFlip('R', bot.r > 0);
 }
 window.__game = {
-  CFG, walls, circles, flippers, ball, advance,
+  CFG, walls, circles, flippers, ball, advance, batR,
   state: () => ({
     phase: G.phase, score: G.score, outs: G.outs, bases: G.bases.slice(), counts: Object.assign({}, G.counts),
     last: G.last, ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, state: ball.state },

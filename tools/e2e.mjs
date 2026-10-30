@@ -164,8 +164,14 @@ function refAdvance(bases, type) {
   const gap = await page.evaluate(() => {
     const g = __game, C = g.CFG, res = {};
     for (const mode of ['rest', 'up']) {
-      const [L, R] = g.flippers.map(f => { const a = f[mode]; return [f.px + Math.cos(a) * C.flipLen, f.py + Math.sin(a) * C.flipLen]; });
-      res[mode] = Math.hypot(L[0] - R[0], L[1] - R[1]) - 2 * C.flipR1;
+      // バットの形の表面どうしの最短距離（軸上の点の距離 − 両方の太さ）
+      const at = (f, t) => { const a = f[mode]; return [f.px + Math.cos(a) * C.flipLen * t, f.py + Math.sin(a) * C.flipLen * t]; };
+      let m = Infinity;
+      for (let i = 0; i <= 50; i++) for (let j = 0; j <= 50; j++) {
+        const P = at(g.flippers[0], i / 50), Q = at(g.flippers[1], j / 50);
+        m = Math.min(m, Math.hypot(P[0] - Q[0], P[1] - Q[1]) - g.batR(i / 50) - g.batR(j / 50));
+      }
+      res[mode] = m;
     }
     res.dia = 2 * C.ballR; return res;
   });
