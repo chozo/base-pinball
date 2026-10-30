@@ -1,6 +1,7 @@
 // 野球ピンボールの告知動画の台本（縦型 1080×1920・約30秒）
 // 本編は実際の物理のまま、__game.bot（球が近づいたらフリッパーを打つ自動操作）で遊ばせる。
-// 種 192 は「二塁打 → 三塁打 → 2打席連続ホームラン」になる展開（ゲームの乱数は __game.seed で固定）。
+// 種 173 は「二塁打（3.6秒）… 二塁打 → ヒット → 3ランホームラン → ホームラン（61〜65秒）」になる展開（ゲームの乱数は __game.seed で固定）。
+// 間の約55秒は撮らずに飛ばす。
 // 最初の場面と満塁ホームランは、ボールの置き場所だけ決めて、あとは物理とフリッパーの自動操作に任せる
 // （置き場所は、フリッパーで弾いてそのターゲットに当たるものを探して選んだ）。
 // 自動操作の区間は、1コマあたりのゲーム時間が 1/60 秒の倍数になる速さ（0.5・1・2倍）だけを使う（物理の刻みを変えないため）
@@ -13,7 +14,7 @@ export const config = {
   music: false, // ゲームの BGM（球審ジャッジと同じ応援曲）を使う
 };
 
-const PLAY_SEED = 192;
+const PLAY_SEED = 173;
 const HIT_FX = {
   single: ['ヒット！', '#93c5fd'],
   double: ['ツーベース！', '#86efac'],
@@ -77,12 +78,14 @@ export default async function scenario(p) {
   await p.call('audio.resync');
   p.caption('ターゲットに当てて\n塁に出よう！', { y: 0.16, dur: 2.6 });
   await p.until((s) => s.time >= 4.6, { max: 6 });           // 二塁打まで
-  // フリッパーの上で跳ねているだけの区間は切る
+  // 間は切る（飛ばしている間の出来事に演出を付けない）
   p.flash({ strength: 0.5, dur: 0.2 });
-  await p.skip(13.4 - (await p.state()).time);
+  quiet = true;
+  await p.skip(59.5 - (await p.state()).time);
+  quiet = false;
   await p.call('audio.resync');
   p.caption('長打で走者を\nかえせ！', { y: 0.16, dur: 2.2 });
-  await p.until((s) => s.time >= 16.6, { max: 5 });          // ヒット → 三塁打
+  await p.until((s) => s.time >= 63.2, { max: 5 });          // 二塁打 → ヒット
   // 1本目のホームランをスローで
   p.zoom(1.3, 0.3, { x: 0.5, y: 0.25 });
   p.speed(0.5);
@@ -96,7 +99,7 @@ export default async function scenario(p) {
   // ---- 20〜26秒 クライマックス: 満塁ホームラン ----
   p.flash({ strength: 0.5, dur: 0.2 });
   await p.call('setBases', [true, true, true]);
-  await setShot(135, 520, 120); // → 左フリッパーで弾いて HR ポケットに入る
+  await setShot(220, 520, 0); // → 右フリッパーで弾いて HR ポケットに入る
   p.caption('満塁のチャンス！', { y: 0.16, size: 54, dur: 1.4 });
   await p.until(flipped, { max: 1 });
   p.zoom(1.3, 0.35, { x: 0.5, y: 0.25 });
