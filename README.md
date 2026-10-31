@@ -96,6 +96,7 @@ node tools/build-dist.mjs   # dist/base-pinball/ に index.html・favicon.svg・
 - 公開URL: https://game.chozo.net/base-pinball/
 - GitHub: https://github.com/chozo/base-pinball
 - スマホの実機で、音（BGM・効果音）・操作・表示を確認済み（2026-10-30）
+- バットの形のフリッパーも、スマホの実機で確認済み（2026-10-31）
 - ゲーム一覧: https://game.chozo.net/info/base-pinball/
 - Cloudflare Workers の静的アセットとして配信します（Worker 名 `base-pinball`、ルート `game.chozo.net/base-pinball` と `game.chozo.net/base-pinball/*`、workers.dev なし）。
 
